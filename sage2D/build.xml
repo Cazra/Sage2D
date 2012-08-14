@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ * 
+ * SAGE 2D : Scala-Accelerated 2D Game Engine
+ * 
+ * Copyright (c) 2012 by Stephen Lindberg (sllindberg21@students.tntech.edu)
+ * All rights reserved.
+ * 
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met: 
+ * 
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer. 
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution. 
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+-->
+<project name="sage2D" default="jars">
+	
+	
+    <description>
+Build the Sage2D library.  This also 
+provides the Sage2D Scala API.
+    </description>
+    	
+    
+    <!-- A simple target to print a banner at the start of the build. -->
+    <target name="start">
+    	<tstamp>
+    		<format property="YEAR" pattern="yyyy"/>
+    	</tstamp>
+   		<echo level="info">
+Sage2D
+
+Copyright (c) ${YEAR} by Stephen Lindberg
+All rights reserved.
+		</echo>
+   	</target>
+	
+	
+  	<!-- A target to configure the build for release. -->
+	<target name="release" unless="build.debug"
+		description="Select release configuration.">
+		<property name="build.optimize" value="on"/>
+		<property name="build.debug"    value="off"/>
+		<echo level="info">Building RELEASE configuration.</echo>
+	</target>
+
+
+	<!-- A target to configure the build for debugging. -->
+	<target name="debug" unless="build.debug"
+		description="Select debug configuration.">
+		<property name="build.optimize" value="off"/>
+		<property name="build.debug"    value="on"/>
+		<echo level="info">Building DEBUG configuration.</echo>
+	</target>
+	
+	
+	<!-- Target to make the environment variables available via properties. -->
+	<target name="getenv">
+		<property environment="env"/>
+	</target>
+		
+	
+	<!-- Execute checks prior to building. -->
+	<target name="checks" depends="check-scala"/>
+	
+	
+	<!-- Check for Scala. -->
+	<target name="check-scala" depends="getenv" unless="env.SCALA_HOME">
+		<echo level="error">Please set the environment variable SCALA_HOME to point to the
+root of your Scala installation.  This is the folder containing the
+bin, lib, and other folders.</echo>
+		<fail message="SCALA_HOME undefined."/>
+	</target>
+
+	
+	<!-- Perform all necessary initialization, set properties, create the
+		 classpath, etc. -->
+	<target name="init" depends="start,debug,checks">
+		<property name="build.base" 	value="."/>
+		<property name="build.src"  	value="${build.base}/src"/>
+		<property name="build.doc"  	value="${build.base}/doc"/>
+		<property name="build.bin"  	value="${build.base}/bin"/>
+        <property name="build.lib"  	value="${build.base}/lib"/>
+		<property name="build.latest"	value="${build.base}/latestJar"/>
+		<property name="build.jar"		value="sage2D.jar"/>
+		<echo level="info">Using Scala at ${env.SCALA_HOME}.</echo>
+		<path id="build.classpath">
+			<pathelement path="${java.class.path}"/>
+			<pathelement path="${build.bin}"/>
+			<fileset dir="${env.SCALA_HOME}/lib">
+				<include name="**/*.jar"/>
+			</fileset>
+		</path>
+		<property name="build.classpath" refid="build.classpath"/>
+		<taskdef resource="scala/tools/ant/antlib.xml"
+			classpath="${build.classpath}"/>
+		<echo level="info">Build information:</echo>
+		<echo level="info">  Build ....... ${DSTAMP}${TSTAMP}</echo>
+		<echo level="verbose">Using CLASSPATH=${build.classpath}.</echo>
+		<echo level="info">Starting build of Sage2D on ${TODAY} at ${TSTAMP}.</echo>
+    </target>
+	
+	
+	<!-- A simple target to build both the jars and the documentation. -->
+	<target name="all" depends="jars,docs"
+		description="Build the source and the API documentation."/>
+	
+	
+	<!-- Clean up the build area.  This will force the source to be re-compiled
+		 but does not affect the documentation. -->
+	<target name="clean" depends="init"
+		description="Delete compiled class files.">
+		<delete dir="${build.bin}" failonerror="false"/>
+	</target>
+	
+	
+	<!-- Clean up the entire folder, removing all directories and generated
+		 files including the date-stamped save directories. -->
+	<target name="distclean" depends="clean"
+		description="Remove all generated files and folders.">
+		<delete dir="${build.doc}/api" failonerror="false"/>
+		<delete includeEmptyDirs="true" failonerror="false">
+			<fileset dir="${build.base}" includes="20??????/**"/>
+			<dirset dir="${build.base}" includes="20??????/**"/>
+		</delete>
+	</target>
+
+	
+	<!-- Compile all the Scala code that is out of date. -->
+	<target name="compile" depends="init"
+		description="Compile all Scala code.">
+		<mkdir dir="${build.bin}"/>
+		<scalac
+			destdir		="${build.bin}"
+			classpathref="build.classpath"
+			deprecation	="on"
+			unchecked	="on">
+			<src path="${build.src}"/>
+		</scalac>
+    </target>
+
+
+	<!-- Determine if the documentation is up to date.  If it is, set the
+		 doc.uptodate property.  This checks the package.html file in the
+		 root folder of the documentation against the time stamps of the
+		 source files. -->
+	<target name="doc-check" depends="init">
+		<uptodate property="doc.uptodate"
+			targetfile="${build.doc}/api/package.html">
+			<srcfiles dir="${build.src}" includes="**/*.scala"/>
+		</uptodate>
+	</target>
+
+
+	<!-- Build the Scala API documentation if it is out of date. -->
+	<target name="docs" depends="doc-check" unless="doc.uptodate"
+		description="Generate the Scaladoc.">
+		<echo level="info">The API documentation is out of date; rebuilding.</echo>
+		<mkdir dir="${build.doc}"/>
+		<mkdir dir="${build.doc}/api"/>
+		<scaladoc
+			destdir		="${build.doc}/api"
+			classpathref="build.classpath"
+			deprecation	="on"
+			unchecked	="on"
+			doctitle	="SAGE2D API Build ${DSTAMP}${TSTAMP}">
+			<src path="${build.src}"/>
+		</scaladoc>
+		<echo level="info">API documentation is available in ${build.doc}/api.</echo>
+	</target>
+	
+	
+	<!-- Determine if the jar files are up to date.  If they are, set the
+		 jar.uptodate property.  This checks the latest jar file against
+		 the class files and supporting jar files in lib. -->
+	<target name="jar-check" depends="compile">
+		<uptodate property="jar.uptodate"
+			targetfile="${build.latest}/${build.jar}">
+			<srcfiles dir="${build.bin}" includes="**/*.class"/>
+			<srcfiles dir="${build.lib}" includes="**/*.jar"/>
+		</uptodate>
+	</target>
+
+
+	<!-- Build the jar files if they are out of date.  This builds a
+		 comprehensive jar file that contains all supporting jars from
+		 the lib folder.  It also packages up the current source. -->
+	<target name="jars" depends="jar-check" unless="jar.uptodate"
+		description="Build the jar files.">
+		<echo level="info">The ${build.jar} is out of date; rebuilding.</echo>
+		<mkdir dir="${build.latest}"/>
+		<mkdir dir="${build.base}/${DSTAMP}"/>
+		<jar
+			filesetmanifest	="mergewithoutmain"
+			destfile		="${build.latest}/${build.jar}"
+			index			="true">
+			<fileset dir="${build.bin}"/>
+			<manifest>
+				<attribute name="Build-Date" value="${DSTAMP}"/>
+			</manifest>
+		</jar>
+		<jar destfile = "${build.base}/${DSTAMP}/sage2D-src.jar">
+			<fileset dir="${build.src}"/>
+			<manifest>
+				<attribute name="Build-Date" value="${DSTAMP}"/>
+			</manifest>
+		</jar>
+		<copy file="${build.latest}/${build.jar}"
+			todir="${build.base}/${DSTAMP}"/>
+		<echo level="info">New ${build.jar} built in ${build.latest}.</echo>
+	</target>
+	
+	
+	<!-- Build a distributable zip file. -->
+	<target name="dist" depends="all">
+		<tar destfile="${build.base}/Sage2D-${DSTAMP}.tgz" compression="gzip">
+			<tarfileset dir="${build.base}"
+				prefix="Sage2D-${DSTAMP}"
+				includes="src/**,lib/**,doc/**,build.xml,README.txt,*.sh,*.dtd,*.xml"/>
+		</tar>
+	</target>
+</project>
