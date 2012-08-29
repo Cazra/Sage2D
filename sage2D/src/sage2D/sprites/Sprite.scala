@@ -31,6 +31,7 @@ package sage2D.sprites
 import java.awt.geom.AffineTransform
 import java.awt.Graphics2D
 import java.awt.Color
+import java.awt.AlphaComposite
 import java.awt.geom.Rectangle2D
 import collection.mutable.ListBuffer
 
@@ -73,7 +74,7 @@ abstract class Sprite(var x : Double = 0, var y : Double = 0) {
 	private var transNeedsUpdate : Boolean = true	
 	
 	/** controls the alpha values for the Sprite's pixels */
-	var alphaMaster : Double = 1.0
+	var opacity : Double = 1.0
 	
 	/** a flag to let everyone know that this Sprite is destroyed and scheduled to be discarded. */
 	var isDestroyed : Boolean = false
@@ -103,7 +104,7 @@ abstract class Sprite(var x : Double = 0, var y : Double = 0) {
 	 */
 	
 	def render(g : Graphics2D) : Unit = {
-		if(isDestroyed || !isVisible || alphaMaster <= 0.0)
+		if(isDestroyed || !isVisible || opacity <= 0.0)
 			return
 		if(transNeedsUpdate)
 			updateTransform
@@ -111,6 +112,12 @@ abstract class Sprite(var x : Double = 0, var y : Double = 0) {
 		
 		val origTrans = g.getTransform
 		var curTrans = g.getTransform
+        
+        var origComp = g.getComposite
+        
+        // if necessary, create a composite to produce semi-transparency.
+        if(opacity < 1.0)
+            g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity.toFloat))
 		
 		curTrans.translate(x,y)
 		curTrans.concatenate(transform)
@@ -119,6 +126,7 @@ abstract class Sprite(var x : Double = 0, var y : Double = 0) {
 		
 		this.draw(g)
 		
+        g.setComposite(origComp);
 		g.setTransform(origTrans)
 		
 	}
@@ -138,7 +146,7 @@ abstract class Sprite(var x : Double = 0, var y : Double = 0) {
 	
 	def setAlpha(a : Double) : Unit = {
 		// enforce the alpha value to be in the range [0.0, 1.0]
-		alphaMaster = math.max(0.0, math.min(1.0,a))
+		opacity = math.max(0.0, math.min(1.0,a))
 	}
 	
 	

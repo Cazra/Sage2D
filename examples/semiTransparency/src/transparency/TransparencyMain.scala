@@ -38,7 +38,7 @@ class TransparencyPanel extends GamePanel {
     
     // create the balls and give them random sizes, velocities, and starting positions.
 	val balls = new ListBuffer[BallSprite]
-	for(i <- 1 to 100) {
+	for(i <- 1 to 2000) {
 		val x = Random.nextInt(640)
 		val y = Random.nextInt(480)
         val ball = new BallSprite(x, y, Random.nextDouble()*64 + 4)
@@ -95,7 +95,7 @@ class BallSprite(val _x : Double, val _y : Double, val radius : Double) extends 
     var curImage : Image = null
 	
     def animate(il : ImageLoader) : Unit = {
-        val semiTrans = (255*alphaMaster).toInt
+    /*    val semiTrans = (255*alphaMaster).toInt
         val imgKey = "ball" + semiTrans
         
         // try to load the semitransparent image from the cache. If it's not in the cache,
@@ -107,6 +107,9 @@ class BallSprite(val _x : Double, val _y : Double, val radius : Double) extends 
             il.addImage(semiTransImg)
             curImage = semiTransImg
         }
+        */
+        
+        curImage = BallSprite.imgCache("ball")
     }
     
 	override def draw(g : Graphics2D) : Unit = {
