@@ -28,25 +28,48 @@
 
 package sage2D
 
-import swing.FlowPanel
+import swing.Panel
 import java.awt.Graphics2D
+import sage2D.input._
+import sage2D.images.ImageLoader
 
 /** 
  * A swing panel object for containing your application and rendering it. 
  * It also provides several helpful methods for managing logic flow, the timer, and painting.
  */
 
-abstract class GamePanel extends FlowPanel with java.awt.event.ActionListener {
+abstract class GamePanel extends Panel with java.awt.event.ActionListener {
 	
 	/** The panel's timer object for timing the execution of logic iterations and repaint calls */
 	val timer : GameTimer = new GameTimer(0,this)
 	
-	/** Changing this to >0 will cause multiple timerLoop iterations to be processed before repainting each time the timer fires. Good for fast-forwarding effects. */
-	var skipRate : Int = 0
+    /** Used for polling keyboard input */
+    var keyboardIn = new KeyboardInput(this)
+    
+    /** Used for polling mouse input */
+    var mouseIn = new MouseInput(this)
+    
+    /** The game's ImageLoader, used primarily to wait on filtered images to finish processing. */
+    var imgLoader = new ImageLoader(this.peer)
+    
+	/** The timer event handler will execute this many logic iterations each time it gets a timer event. This can be increased to produce fast-forward type effects. */
+    var stepsPerFrame = 1
 	
 	/** A flag for telling the panel whether it needs to wait to load something and display the loading animation instead of its normal execution */
 	var isLoading : Boolean = false
 	
+    /** Flag for whether the game is currently running. If this is false, then all timer events will be skipped by the timer event handler. */
+    var isRunning = false
+    
+    /** Our game/application's current level */
+    var curLevel : Level = null
+    
+    /** Flag to let our game know that we need to change levels at the before performing any logic or rendering on an iteration. */
+    var changingLevel = false
+   
+    /** The name of the level we are switching to if changingLevel is true. */
+    var changeToLevelName = ""
+    
 	/** 
 	 * A flag for telling components outside the panel that it is currently busy handling a timerLoop iteration or a repaint. 
 	 * This is meant to encourage programming with concurrency in mind, but it may be replaced with some other concurrency mechanism
@@ -66,11 +89,20 @@ abstract class GamePanel extends FlowPanel with java.awt.event.ActionListener {
 		case gt : GameTimer => {
 			timerLock = true
 			
-			if(!isLoading) {
-				// perform 1 or more iteration through the timer loop, depending on the skip rate.
-				val numLoops = math.max(skipRate + 1, 1)
-				for(i <- 1 to numLoops) timerLoop	
-			}
+            if(!this.isRunning) {
+                timerLock = false
+                return
+            }
+            
+            // poll user input for this frame
+            keyboardIn.poll
+            mouseIn.poll
+            
+            // Run n iterations through our game's logic (most of the time, this will be 1.)
+            // Then perform 1 rendering iteration.
+            for(i <- 0 until stepsPerFrame) {
+                logic
+            }
 			repaint
 			gt.updateFrameRateCounter
 			
@@ -82,11 +114,20 @@ abstract class GamePanel extends FlowPanel with java.awt.event.ActionListener {
 	
 	
 	/** 
-	 * Performs one iteration through the application's logic. 
-	 * The user is expected to implement their own timerLoop for their application's needs.
+	 * Checks if we need to change levels, changes levels if it needs to, and then performs one iteration through the application's logic. 
+	 * The user is expected to implement their own logic for their application's needs, typically by
+     * delegating to the logic code of their game's current level.
 	 */
-	
-	def timerLoop : Unit
+	def logic : Unit = {
+        if(changingLevel)
+            doChangeLevel
+        
+        // do some stuff
+        // ...
+        
+        if(curLevel != null)
+            curLevel.logic
+    }
 	
 	
 	/**
@@ -119,7 +160,6 @@ abstract class GamePanel extends FlowPanel with java.awt.event.ActionListener {
 	 * The user is expected to implement their own loadingPaint method for their application's needs.
 	 * @param g		This panel's graphics context passed down by repaint.
 	 */
-	
 	def loadingPaint(g : Graphics2D) : Unit
 	
 	
@@ -127,10 +167,10 @@ abstract class GamePanel extends FlowPanel with java.awt.event.ActionListener {
 	 * Begins the application and starts the timer 
 	 * @param fps	The desired frame rate for the application's timer. 60 by default.
 	 */
-	
 	def start(fps : Int = 60) : Unit = {
 		timer.setFPS(fps)
 		timer.start
+        this.isRunning = true
 	}
     
     
@@ -139,6 +179,45 @@ abstract class GamePanel extends FlowPanel with java.awt.event.ActionListener {
      */
 	def clean : Unit = {
         // This does nothing by default. Override it to fit your needs.
+    }
+    
+    /** Schedules the game to change to a different level on the next timer event. */
+    def changeLevel(name : String) : Unit = {
+        changingLevel = true
+        changeToLevelName = name
+    }
+    
+    /** 
+     * Cleans up after the current level and then switches to a new level matching changeToLevelName before performing any logic or rendering on a game iteration.
+     */
+    def doChangeLevel : Unit = {
+        isLoading = true
+        changingLevel = false
+        
+        // TODO: create a thread that performs the level's resource loading for us so 
+        // that we can display a loading screen instead of just freezing while it loads.
+        
+        if(curLevel != null)
+            curLevel.clean
+            
+        var newLevel = makeLevelInstance(changeToLevelName)
+        if(newLevel != null) {
+            curLevel = newLevel
+        }
+        else {
+            System.err.println("GamePanel change level error : " + changeToLevelName + " is not a valid level in this game.")
+        }
+        
+        this.isLoading = false
+    }
+    
+    /** 
+     * Returns an instance of a level associated with the given level name. 
+     * The user is expected to implement their own code for this method since 
+     * no games are likely to have the same mapping of names to Level subtype instances.
+     */
+    def makeLevelInstance(levelName : String) : Level = {
+        null
     }
 }
 

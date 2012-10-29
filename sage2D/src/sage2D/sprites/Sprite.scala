@@ -36,6 +36,7 @@ import java.awt.geom.Rectangle2D
 import collection.mutable.ListBuffer
 
 import sage2D.GameMath
+import sage2D.images.MultiComposite
 
 /** 
  * An abstract class used to represent some sort of renderable object.
@@ -66,6 +67,9 @@ abstract class Sprite(var x : Double = 0, var y : Double = 0) {
 	/** used to store the Sprite's current rotate-scale transform */
 	private var transform : AffineTransform = new AffineTransform
 	
+    /** The complete affine transform used to render the last frame of this sprite.*/
+    var curTrans = new AffineTransform
+    
 	/** 
 	 * This becomes true whenever any of the methods for manipulating 
 	 * this Sprite's rotation or scale are called. It lets the render method know to update 
@@ -116,19 +120,20 @@ abstract class Sprite(var x : Double = 0, var y : Double = 0) {
         var origComp = g.getComposite
         
         // if necessary, create a composite to produce semi-transparency.
-        if(opacity < 1.0)
+        if(opacity < 1.0) 
             g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity.toFloat))
-		
+        
 		curTrans.translate(x,y)
 		curTrans.concatenate(transform)
 		curTrans.translate(0-focalX,0-focalY)
 		g.setTransform(curTrans)
-		
+
 		this.draw(g)
 		
         g.setComposite(origComp);
 		g.setTransform(origTrans)
 		
+        this.curTrans = curTrans
 	}
 
 	/**	

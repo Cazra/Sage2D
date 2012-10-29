@@ -21,7 +21,7 @@ object TransparencyMain extends SimpleSwingApplication {
 	/** The window's Frame object */
 	
 	def top = new MainFrame {
-		title = "Transparency test example"
+		title = "Alpha Map test example"
 		contents = new TransparencyPanel
 		visible = true
 	}
@@ -32,39 +32,14 @@ class TransparencyPanel extends GamePanel {
 	background = new Color(0xffffff)
 	preferredSize = new Dimension(640,480)
 	
-    // Preload the ball's image.
-    val imgLoader = new ImageLoader(this.peer)
-    BallSprite.loadImages(imgLoader)
-    
-    // create the balls and give them random sizes, velocities, and starting positions.
-	val balls = new ListBuffer[BallSprite]
-	for(i <- 1 to 100) {
-		val x = Random.nextInt(640)
-		val y = Random.nextInt(480)
-		balls += new BallSprite(x, y, Random.nextDouble()*64 + 4)
-	}
-    
-	def timerLoop : Unit = {
-		
-        // move the balls
-		for(ball <- balls) {
-			ball.move(this)
-		}
-        
-        // lastly, have all the balls call their animate method to determine the image they should render.
-        // In the case of this example, they only show 1 image.
-        for(ball <- balls) {
-            ball.animate
-        }
-	}
+    changeLevel("main")
 	
 	def mainPaint(g : Graphics2D) : Unit = {
 		// store affine transforms for later use
 		val origTrans = g.getTransform
 		
-		for(ball <- balls) {
-			ball.render(g)
-		}
+		curLevel.render(g)
+        
 		// restore the original transform
 		g.setTransform(origTrans)
 		
@@ -74,11 +49,24 @@ class TransparencyPanel extends GamePanel {
 	}
 	
 	def loadingPaint(g : Graphics2D) : Unit = {
-	
+        // do nothing
 	}
 	
+    
+    // only makes ExampleLevel instances for "main"
+    override def makeLevelInstance(levelName : String) : Level = {
+        if(levelName == "main")
+            new ExampleLevel(this)
+        else 
+            null
+    }
+    
 	start()
 }
+
+
+
+
 
 class BallSprite(val _x : Double, val _y : Double, val radius : Double) extends Sprite(_x, _y) {
 	var dia = 2 * radius
@@ -111,8 +99,10 @@ class BallSprite(val _x : Double, val _y : Double, val radius : Double) extends 
         if(x > panel.size.width) x = panel.size.width
         if(y > panel.size.height) y = panel.size.height
 	}
-
 }
+
+
+
 
 object BallSprite {
     /** the raw, unfiltered image for the balls. */
@@ -150,4 +140,44 @@ object BallSprite {
     }
 }   
 
+
+class ExampleLevel(game : GamePanel, parent : Level = null) extends Level(game, parent) {
+    
+    // create the balls and give them random sizes, velocities, and starting positions.
+	val balls = new ListBuffer[BallSprite]
+	for(i <- 1 to 100) {
+		val x = Random.nextInt(640)
+		val y = Random.nextInt(480)
+		balls += new BallSprite(x, y, Random.nextDouble()*64 + 4)
+	}
+    
+    
+    def loadData : Unit = {
+        // Preload the ball's image.
+        BallSprite.loadImages(game.imgLoader)
+    }
+    
+    def clean : Unit = {
+        // do nothing.
+    }
+    
+    def logic : Unit = {
+        // move the balls
+		for(ball <- balls) {
+			ball.move(game)
+		}
+        
+        // lastly, have all the balls call their animate method to determine the image they should render.
+        // In the case of this example, they only show 1 image.
+        for(ball <- balls) {
+            ball.animate
+        }
+    }
+    
+    def render(g : Graphics2D) : Unit = {
+        for(ball <- balls) {
+			ball.render(g)
+		}
+    }
+}
 
