@@ -33,12 +33,11 @@ class TransparencyPanel extends GamePanel {
 	preferredSize = new Dimension(640,480)
 	
     // Preload the ball's image.
-    val imgLoader = new ImageLoader(this.peer)
     BallSprite.loadImages(imgLoader)
     
     // create the balls and give them random sizes, velocities, and starting positions.
 	val balls = new ListBuffer[BallSprite]
-	for(i <- 1 to 2000) {
+	for(i <- 1 to 2500) {
 		val x = Random.nextInt(640)
 		val y = Random.nextInt(480)
         val ball = new BallSprite(x, y, Random.nextDouble()*64 + 4)
@@ -46,7 +45,7 @@ class TransparencyPanel extends GamePanel {
 		balls += ball
 	}
     
-	def timerLoop : Unit = {
+	override def logic : Unit = {
 		
         // move the balls
 		for(ball <- balls) {

@@ -33,7 +33,6 @@ class QuadTreeTestPanel extends GamePanel {
 	preferredSize = new Dimension(640,480)
     
     /** The keyboard input interface for the panel */
-	val keyboardIn = new KeyboardInput(this)
 	focusable = true
 	
 	val balls = new ListBuffer[BallSprite]
@@ -44,9 +43,7 @@ class QuadTreeTestPanel extends GamePanel {
 	}
 	val quadSprite = new QuadTreeSprite(null)
 	
-	def timerLoop : Unit = {
-        keyboardIn.poll
-        
+	override def logic : Unit = {
 		// create a new quadtree
 		val quadTree = new QuadTree(0,0,this.size.width,this.size.height)
 		quadSprite.quadTree = quadTree
