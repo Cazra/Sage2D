@@ -203,6 +203,7 @@ abstract class GamePanel extends Panel with java.awt.event.ActionListener {
         var newLevel = makeLevelInstance(changeToLevelName)
         if(newLevel != null) {
             curLevel = newLevel
+            publish(new event.NewLevelEvent(newLevel))
         }
         else {
             System.err.println("GamePanel change level error : " + changeToLevelName + " is not a valid level in this game.")

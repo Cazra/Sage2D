@@ -26,29 +26,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ======================================================================*/
 
-package sage2D
+package sage2D.event
 
-import java.awt.Graphics2D
-import sage2D.input._
-import sage2D.images.ImageLoader
-import scala.swing.Publisher
+import sage2D.Level
+import scala.swing.event.Event
 
-abstract class Level(var game : GamePanel, var parent : Level = null) extends Publisher {
-    var keyboard = game.keyboardIn
-    var mouse = game.mouseIn
-    
-    /** Loads the resources needed by this level. */
-    def loadData : Unit
-   
-    /** Performs cleanup duties for when we are done using this level, */
-    def clean : Unit
-   
-    /** Performs 1 iteration through the level's logic. May call logic of lower levels. */
-    def logic : Unit
+class NewLevelEvent(val level : Level) extends Event {
 
-    /** Performs rendering for this level. May call render of lower levels. */
-    def render(g : Graphics2D) : Unit
-    
-    loadData
 }
-
